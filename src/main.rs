@@ -1,8 +1,5 @@
 use bevy::prelude::*;
-use bevy::core::FixedTimestep;
 use bevy::ecs::schedule::ShouldRun;
-
-use rand::random;
 
 const GRID_HEIGHT: usize = 50;
 const GRID_WIDTH: usize = 50;
@@ -19,6 +16,7 @@ fn main() {
         .insert_resource(StateGrid([[false; GRID_HEIGHT]; GRID_WIDTH]))
         .insert_resource(EntityGrid(vec![]))
         .insert_resource(Paused(true))
+        .insert_resource(LastMouseCell(-1,-1))
         .insert_resource(WindowDescriptor {
             width: 500.0,
             height: 500.0,
@@ -31,11 +29,7 @@ fn main() {
                 .with_run_criteria(should_update_run)
                 .with_system(update_cells),
         )
-        .add_system_set(
-            SystemSet::new()
-                .with_run_criteria(FixedTimestep::step(1.0))
-                .with_system(spawn_random_cells),
-        )
+        .add_system(spawn_cells_with_mouse)
         .add_system_set_to_stage(
             CoreStage::PostUpdate,
             SystemSet::new()
@@ -72,6 +66,8 @@ struct StateGrid([[bool; GRID_HEIGHT]; GRID_WIDTH]);
 struct EntityGrid(Vec<Vec<Entity>>);
 
 struct Paused(bool);
+
+struct LastMouseCell(i32, i32);
 
 #[derive(Component)]
 struct Cell;
@@ -170,11 +166,6 @@ fn update_cell_sprites(
     }
 }
 
-fn spawn_random_cells(
-    mut state_grid: ResMut<StateGrid>,
-    ) {
-    (*state_grid).0[random::<usize>() % GRID_WIDTH][random::<usize>() % GRID_HEIGHT] = true;
-}
 
 fn should_update_run(
     mut paused: ResMut<Paused>,
@@ -192,4 +183,24 @@ fn should_update_run(
             return ShouldRun::Yes;
         }
         ShouldRun::No
+}
+
+fn spawn_cells_with_mouse(
+    windows: Res<Windows>,
+    buttons: Res<Input<MouseButton>>,
+    mut state_grid: ResMut<StateGrid>,
+    mut last_cell: ResMut<LastMouseCell>,
+    ) {
+    if buttons.pressed(MouseButton::Left) {
+        let window = windows.get_primary().unwrap();
+        if let Some(position) = window.cursor_position() {
+            let x = position.x as f32 / window.width() as f32 * GRID_WIDTH as f32;
+            let y = position.y as f32 / window.height() as f32 * GRID_HEIGHT as f32;
+            if last_cell.0 != x as i32 || last_cell.1 != y as i32 {
+                (*state_grid).0[x as usize][y as usize] = !state_grid.0[x as usize][y as usize];
+                (*last_cell).0 = x as i32;
+                (*last_cell).1 = y as i32;
+            }
+        }
+    }
 }
