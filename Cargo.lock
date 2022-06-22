@@ -1391,6 +1391,7 @@ name = "game_of_life"
 version = "0.1.1"
 dependencies = [
  "bevy",
+ "modulo",
 ]
 
 [[package]]
@@ -1964,6 +1965,12 @@ checksum = "b9f1c5b025cda876f66ef43a113f91ebc9f4ccef34843000e0adf6ebbab84e21"
 dependencies = [
  "winapi",
 ]
+
+[[package]]
+name = "modulo"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "53db447cac1df8402bef9a2ccacb0ea0dd1061b935e9e9ab9e5082c516aaada8"
 
 [[package]]
 name = "naga"

@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy::ecs::schedule::ShouldRun;
 
+use modulo::Mod;
+
 use crate::grid::{GridPlugin, Position, Size};
 
 mod grid;
@@ -89,8 +91,8 @@ fn update_cells(
         for y in 0..GRID_HEIGHT { 
             let mut num_alive_nb = 0;
             for [dx,dy] in NEIGHBORS {
-                let nx = (dx + x as i32) as usize % GRID_WIDTH;
-                let ny = (dy + y as i32) as usize % GRID_HEIGHT;
+                let nx = (dx + x as i32).modulo(GRID_WIDTH as i32) as usize;
+                let ny = (dy + y as i32).modulo(GRID_HEIGHT as i32) as usize;
                 if initial_state_grid[nx][ny] {
                     num_alive_nb += 1;
                 }
