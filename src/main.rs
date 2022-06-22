@@ -1,11 +1,15 @@
 use bevy::prelude::*;
 use bevy::ecs::schedule::ShouldRun;
 
-const GRID_HEIGHT: usize = 50;
-const GRID_WIDTH: usize = 50;
+use crate::grid::{GridPlugin, Position, Size};
+
+mod grid;
+
+pub const GRID_HEIGHT: usize = 50;
+pub const GRID_WIDTH: usize = 50;
 const SPEED: f64 = 0.5;
 
-const NEIGHBORS: [[i8;2];8] = [
+const NEIGHBORS: [[i32;2];8] = [
     [-1,-1],[0,-1],[1,-1],
     [-1,0],[1,0],
     [-1,1],[0,1],[1,1],
@@ -30,36 +34,13 @@ fn main() {
                 .with_system(update_cells),
         )
         .add_system(spawn_cells_with_mouse)
-        .add_system_set_to_stage(
-            CoreStage::PostUpdate,
-            SystemSet::new()
-                .with_system(update_cell_sprites)
-                .with_system(position_translation)
-                .with_system(size_scaling),
-        )
+        .add_system_to_stage(CoreStage::PostUpdate, update_cell_sprites)
+        .add_plugin(GridPlugin)
         .add_plugins(DefaultPlugins)
         .run()
 }
 
-#[derive(Component, Clone, Copy, PartialEq, Eq)]
-struct Position {
-    x: i32,
-    y: i32,
-}
 
-#[derive(Component)]
-struct Size {
-    width: f32,
-    height: f32,
-}
-impl Size {
-    pub fn square(x: f32) -> Self {
-        Self {
-            width: x,
-            height: x,
-        }
-    }
-}
 
 struct StateGrid([[bool; GRID_HEIGHT]; GRID_WIDTH]);
 
@@ -71,32 +52,6 @@ struct LastMouseCell(i32, i32);
 
 #[derive(Component)]
 struct Cell;
-
-fn size_scaling(windows: Res<Windows>, mut q: Query<(&Size, &mut Transform)>) {
-    let window = windows.get_primary().unwrap();
-    for (sprite_size, mut transform) in q.iter_mut() {
-        transform.scale = Vec3::new(
-            sprite_size.width / GRID_WIDTH as f32 * window.width() as f32,
-            sprite_size.height / GRID_HEIGHT as f32 * window.height() as f32,
-            1.0,
-            );
-    }
-}
-
-fn position_translation(windows: Res<Windows>, mut q: Query<(&Position, &mut Transform)>) {
-    fn convert(pos: f32, bound_window: f32, bound_game: f32) -> f32 {
-        let tile_size = bound_window / bound_game;
-        pos / bound_game * bound_window - (bound_window / 2.) + (tile_size / 2.)
-    }
-    let window = windows.get_primary().unwrap();
-    for (pos, mut transform) in q.iter_mut() {
-        transform.translation = Vec3::new(
-            convert(pos.x as f32, window.width() as f32, GRID_WIDTH as f32),
-            convert(pos.y as f32, window.height() as f32, GRID_HEIGHT as f32),
-            0.0,
-            );
-    }
-}
 
 fn setup_camera(mut commands: Commands) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
@@ -134,8 +89,8 @@ fn update_cells(
         for y in 0..GRID_HEIGHT { 
             let mut num_alive_nb = 0;
             for [dx,dy] in NEIGHBORS {
-                let nx = (dx + x as i8) as usize % GRID_WIDTH;
-                let ny = (dy + y as i8) as usize % GRID_HEIGHT;
+                let nx = (dx + x as i32) as usize % GRID_WIDTH;
+                let ny = (dy + y as i32) as usize % GRID_HEIGHT;
                 if initial_state_grid[nx][ny] {
                     num_alive_nb += 1;
                 }
